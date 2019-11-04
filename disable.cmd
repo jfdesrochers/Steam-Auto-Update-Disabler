@@ -15,15 +15,55 @@ call :checkPreviousRun
 call :createTempDir
 
 cls
-echo Updating Auto update behavior for...
-echo -- -- -- -- Log Started %DATE% @ %TIME% -- -- -- -->>%~dp0\log.txt
+
+echo Steam Game Auto-Update Enable / Disable
+echo =======================================
+echo.
+echo Choose Action:
+echo.
+echo 1 - Enable Auto-Update
+echo 2 - Disable Auto-Update
+echo.
+
+:actionPrompt
+set /p "action=Enter Choice (1 or 2): "
+if not defined action goto :actionPrompt
+
+if "%action%"=="1" (
+	set "curvalue=1"
+	set "newvalue=0"
+	goto :continueUpdate
+)
+
+if "%action%"=="2" (
+	set "curvalue=0"
+	set "newvalue=1"
+	goto :continueUpdate
+)
+
+echo Invalid value: "%action%"
+goto :actionPrompt
+
+:continueUpdate
+echo.
+echo -- -- -- -- Job Started %DATE% @ %TIME% -- -- -- -->>%~dp0\log.txt
+if "%action%"=="1" (
+	echo Updates will be ENABLED
+	echo Updates will be ENABLED>>%~dp0\log.txt
+)
+if "%action%"=="2" (
+	echo Updates will be DISABLED
+	echo Updates will be DISABLED>>%~dp0\log.txt
+)
+echo Updating Auto-Update behavior for...
+
 pushd "%steamapps%"
 
 :: Get list of acf files.
 for %%a in (*.acf) do (
-	:: Look for acf files with "AutoUpdateBehavior" "0".
+	:: Look for acf files with "AutoUpdateBehavior" set to curvalue.
 	for /f "tokens=1,2 delims=	" %%x in (%%a) do (
-		if %%x == "AutoUpdateBehavior" if %%y == "0" (
+		if %%x == "AutoUpdateBehavior" if %%y == "%curvalue%" (
 			:: Create a backup of the file first, then write the file changing the one value.
 			echo %%a
 			echo %%a>>%~dp0\log.txt
@@ -34,6 +74,7 @@ for %%a in (*.acf) do (
 )
 
 popd
+echo -- -- -- -- Job Finished %DATE% @ %TIME% -- -- -- -->>%~dp0\log.txt
 echo.>>%~dp0\log.txt
 
 echo.
@@ -47,15 +88,12 @@ echo Done. Press any key to close this window.
 pause>nul
 goto :EOF
 
-
-
-
 :writeChange
 	for /f "tokens=* delims=" %%n in (%1) do (
 		set line=%%n
 		for /f "tokens=1,2 delims=	" %%r in ("!line!") do (
 			if %%r == "AutoUpdateBehavior" (
-				set line=!line:"0"="1"!
+				set line=!line:"%curvalue%"="%newvalue%"!
 			)
 		)
 		echo.!line!>>"%tempdir%\%1"
@@ -94,7 +132,7 @@ goto :EOF
 	if exist "%steamapps%\acf-backups" (
 		echo It appears that you have already ran this script on this library.
 		echo A backup was made: 
-		for %%x in (%steamapps%\acf-backups) do echo %%~tx
+		for %%x in ("%steamapps%\acf-backups") do echo %%~tx
 		echo.
 		echo Press any key to continue, or click the X ^(close button^) on this window to cancel.
 		pause>nul
